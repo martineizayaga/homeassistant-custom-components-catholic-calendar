@@ -1,0 +1,7 @@
+ha_core/
+custom_components/catholic_calendar/__pycache__/
+venv/
+.mypy_cache/
+.ruff_cache/
+.devcontainer/local.env
+.DS_Store

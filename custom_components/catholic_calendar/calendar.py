@@ -1,21 +1,24 @@
-"""CatholicCalendar calendar"""
+"""CatholicCalendar calendar."""
+
 from __future__ import annotations
-import voluptuous as vol
-import homeassistant.helpers.config_validation as cv
+
+import datetime
 import logging
-from homeassistant.const import CONF_NAME
+
+import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
 from homeassistant.components.calendar import (
     PLATFORM_SCHEMA,
     CalendarEntity,
     CalendarEvent,
 )
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType, StateType
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from .calendar_generator import CalendarGenerator
+from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
-import datetime
-from datetime import timedelta, timezone
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.util import dt as dt_util
+
+from .calendar_generator import CalendarGenerator
 from .liturgical_grade import LiturgicalGrade
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
@@ -26,15 +29,13 @@ COMPONENT_REPO = (
     "https://github.com/jmacri01/homeassistant-custom-components-catholic-calendar"
 )
 
-REQUIREMENTS = []
+REQUIREMENTS: list[str] = []
 
 DEFAULT_THUMBNAIL = "https://www.home-assistant.io/images/favicon-192x192-full.png"
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {vol.Required(CONF_NAME): cv.string},
 )
-
-_LOGGER: logging.Logger = logging.getLogger(__name__)
 
 
 async def async_setup_platform(
@@ -54,7 +55,7 @@ async def async_setup_platform(
     )
 
 
-class CatholicCalendar(CalendarEntity):
+class CatholicCalendar(CalendarEntity):  # type: ignore[misc]
     """Representation of a CatholicCalendar calendar."""
 
     _attr_force_update = True
@@ -106,7 +107,7 @@ class CatholicCalendar(CalendarEntity):
         _LOGGER.debug("retrieved calendar_events: %s", calendar_events)
         return calendar_events
 
-    def __get_calendar_events(self, date) -> list[CalendarEvent]:
+    def __get_calendar_events(self, date: datetime.date) -> list[CalendarEvent]:
         calendar_events = []
         if datetime.datetime(date.year, date.month, date.day) in self._festivities:
             for festivity in sorted(
@@ -119,12 +120,16 @@ class CatholicCalendar(CalendarEntity):
                         start=datetime.date(date.year, date.month, date.day),
                         end=datetime.date(date.year, date.month, date.day),
                         summary=festivity["name"],
-                        description=f"liturgical_color: {festivity['liturgical_color']}, liturgical_grade: {LiturgicalGrade.descr(festivity['liturgical_grade'])}",
+                        description=(
+                            f"liturgical_color: {festivity['liturgical_color']}, "
+                            "liturgical_grade: "
+                            f"{LiturgicalGrade.descr(int(festivity['liturgical_grade']))}"
+                        ),
                     )
                 )
         return calendar_events
 
-    def __generate_festivities(self, year):
+    def __generate_festivities(self, year: int) -> None:
         _LOGGER.debug("Generating dates for year %s", year)
         calendar_generator = CalendarGenerator(year)
         festivities = calendar_generator.generate_festivities()

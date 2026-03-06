@@ -1,20 +1,21 @@
 """CatholicCalendar sensor."""
+
 from __future__ import annotations
+
+import datetime
 import logging
-import voluptuous as vol
+from typing import Any
+
 import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
 from homeassistant.components.sensor import PLATFORM_SCHEMA, SensorEntity
-
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType, StateType
-
-from homeassistant.util import dt as dt_util
+from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.const import CONF_NAME
+from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType, StateType
+from homeassistant.util import dt as dt_util
 
 from .calendar_generator import CalendarGenerator
-import datetime
-from datetime import timedelta
 from .liturgical_grade import LiturgicalGrade
 
 __version__ = "1.0.1"
@@ -23,7 +24,7 @@ COMPONENT_REPO = (
     "https://github.com/jmacri01/homeassistant-custom-components-catholic-calendar"
 )
 
-REQUIREMENTS = []
+REQUIREMENTS: list[str] = []
 
 DEFAULT_THUMBNAIL = "https://www.home-assistant.io/images/favicon-192x192-full.png"
 
@@ -51,7 +52,7 @@ async def async_setup_platform(
     )
 
 
-class CatholicCalendarSensor(SensorEntity):
+class CatholicCalendarSensor(SensorEntity):  # type: ignore[misc]
     """Representation of a CatholicCalendar sensor."""
 
     _attr_force_update = True
@@ -65,8 +66,10 @@ class CatholicCalendarSensor(SensorEntity):
         self._attr_icon = "mdi:calendar"
         self._festivities: dict[datetime.datetime, list[dict[str, str]]] = {}
         self._todays_festivities: list[dict[str, str]] = []
-        self._attr_extra_state_attributes = {"festivities": self._todays_festivities}
-        self._years_loaded = []
+        self._attr_extra_state_attributes: dict[str, Any] = {
+            "festivities": self._todays_festivities
+        }
+        self._years_loaded: list[int] = []
         _LOGGER.debug("CatholicCalendarSensor initialized - %s", self)
 
     def __repr__(self: CatholicCalendarSensor) -> str:
@@ -76,6 +79,9 @@ class CatholicCalendarSensor(SensorEntity):
     def update(self: CatholicCalendarSensor) -> None:
         """Generate dates."""
         today = dt_util.now().date()
+        calendar_generator = CalendarGenerator(today.year)
+        season = calendar_generator.get_season(today)
+        self._attr_extra_state_attributes["season"] = season.value
 
         # load this year and the next if not already loaded
         for year in [today.year, (today + datetime.timedelta(weeks=52)).year]:
@@ -94,8 +100,9 @@ class CatholicCalendarSensor(SensorEntity):
         ):
             if "liturgical_grade_desc" not in festivity:
                 festivity.update({"liturgical_grade_desc": ""})
-            festivity["liturgical_grade_desc"] = LiturgicalGrade.descr(
-                festivity["liturgical_grade"]
+            grade = festivity["liturgical_grade"]
+            festivity["liturgical_grade_desc"] = (
+                LiturgicalGrade.descr(int(grade)) or "Unknown"
             )
             self._todays_festivities.append(festivity)
 
@@ -104,7 +111,7 @@ class CatholicCalendarSensor(SensorEntity):
         """Return the state of the sensor."""
         return dt_util.now().date()
 
-    def __generate_festivities(self, year):
+    def __generate_festivities(self, year: int) -> None:
         _LOGGER.debug("Generating dates for year %s", year)
         calendar_generator = CalendarGenerator(year)
         festivities = calendar_generator.generate_festivities()

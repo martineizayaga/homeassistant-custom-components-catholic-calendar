@@ -1,0 +1,20 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Home Assistant",
+      "detail": "Run Home Assistant at http://localhost:8123/",
+      "type": "shell",
+      "command": "${command:python.interpreterPath} -m homeassistant -c ha_core/config",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

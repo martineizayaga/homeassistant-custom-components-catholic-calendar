@@ -1,0 +1,18 @@
+{
+    "python.defaultInterpreterPath": "/workspaces/homeassistant-custom-components-catholic-calendar/venv/bin/python",
+    "python.analysis.extraPaths": [
+        "./ha_core"
+    ],
+    "python.autoComplete.extraPaths": [
+        "./ha_core"
+    ],
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports.ruff": "explicit"
+        }
+    },
+    "ruff.importStrategy": "fromEnvironment"
+}

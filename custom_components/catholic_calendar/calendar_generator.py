@@ -1,14 +1,41 @@
+from __future__ import annotations
+
 import datetime
-from .liturgical_grade import LiturgicalGrade
 import json
 import os
+from typing import Any
+
+from .liturgical_grade import LiturgicalGrade
+from .liturgical_season import LiturgicalSeason
 
 
 class CalendarGenerator:
     def __init__(self, year: int) -> None:
         self._year = year
 
-    def __generate_easter_triduum(self):
+    def get_season(self, for_date: datetime.date) -> LiturgicalSeason:
+        easter_date = self.__get_easter_date().date()
+        holy_thursday = easter_date - datetime.timedelta(days=3)
+        pentecost_date = easter_date + datetime.timedelta(days=49)
+        ash_wednesday = easter_date - datetime.timedelta(days=46)
+        last_sunday_of_advent = self.__get_last_sunday_of_advent().date()
+        first_sunday_of_advent = last_sunday_of_advent - datetime.timedelta(days=21)
+        baptism_of_the_lord = self.__get_sunday_after_epiphany().date()
+        christmas_date = datetime.date(self._year, 12, 25)
+
+        if for_date >= first_sunday_of_advent and for_date < christmas_date:
+            return LiturgicalSeason.ADVENT
+        if for_date >= christmas_date and for_date < baptism_of_the_lord:
+            return LiturgicalSeason.CHRISTMAS
+        if for_date >= holy_thursday and for_date < easter_date:
+            return LiturgicalSeason.EASTER_TRIDUUM
+        if for_date >= ash_wednesday and for_date < holy_thursday:
+            return LiturgicalSeason.LENT
+        if for_date >= easter_date and for_date <= pentecost_date:
+            return LiturgicalSeason.EASTER
+        return LiturgicalSeason.ORDINARY_TIME
+
+    def __generate_easter_triduum(self) -> list[dict[str, Any]]:
         easter_date = self.__get_easter_date()
         holy_thurs = {
             "name": "Holy Thursday",
@@ -36,7 +63,7 @@ class CalendarGenerator:
         }
         return [holy_thurs, good_fri, easter_vigil, easter]
 
-    def __generate_christmas_epiphany(self):
+    def __generate_christmas_epiphany(self) -> list[dict[str, Any]]:
         christmas = {
             "name": "Christmas",
             "date": datetime.datetime(self._year, 12, 25),
@@ -75,7 +102,7 @@ class CalendarGenerator:
 
         return festivities
 
-    def __generate_ascension_pentecost(self):
+    def __generate_ascension_pentecost(self) -> list[dict[str, Any]]:
         easter_date = self.__get_easter_date()
         ascension = {
             "name": "Ascension",
@@ -97,13 +124,13 @@ class CalendarGenerator:
         }
         return [ascension, easter7, pentecost]
 
-    def __get_last_sunday_of_advent(self):
+    def __get_last_sunday_of_advent(self) -> datetime.datetime:
         last_sunday_of_advent = datetime.datetime(self._year, 12, 25)
         while last_sunday_of_advent.weekday() != 6:
             last_sunday_of_advent -= datetime.timedelta(days=1)
         return last_sunday_of_advent
 
-    def __generate_sunday_major_seasons(self):
+    def __generate_sunday_major_seasons(self) -> list[dict[str, Any]]:
         easter_date = self.__get_easter_date()
         last_sunday_of_advent = self.__get_last_sunday_of_advent()
 
@@ -238,7 +265,7 @@ class CalendarGenerator:
         )
         return festivities
 
-    def __generate_ash_wednesday(self):
+    def __generate_ash_wednesday(self) -> list[dict[str, Any]]:
         easter_date = self.__get_easter_date()
 
         festivities = []
@@ -252,7 +279,7 @@ class CalendarGenerator:
         )
         return festivities
 
-    def __generate_weekdays_holy_week(self):
+    def __generate_weekdays_holy_week(self) -> list[dict[str, Any]]:
         easter_date = self.__get_easter_date()
 
         festivities = []
@@ -282,7 +309,7 @@ class CalendarGenerator:
         )
         return festivities
 
-    def __generate_easter_octave(self):
+    def __generate_easter_octave(self) -> list[dict[str, Any]]:
         easter_date = self.__get_easter_date()
 
         festivities = []
@@ -336,7 +363,7 @@ class CalendarGenerator:
         )
         return festivities
 
-    def __generate_mobile_solemnities_of_the_lord(self):
+    def __generate_mobile_solemnities_of_the_lord(self) -> list[dict[str, Any]]:
         easter_date = self.__get_easter_date()
         last_sunday_of_advent = self.__get_last_sunday_of_advent()
 
@@ -360,9 +387,11 @@ class CalendarGenerator:
         return festivities
 
     def __generate_fixed_solemnities(
-        self, current_solemnity_dates, sundays_of_advent_lent_easter
-    ):
-        festivities = []
+        self,
+        current_solemnity_dates: list[datetime.datetime],
+        sundays_of_advent_lent_easter: list[datetime.datetime],
+    ) -> list[dict[str, Any]]:
+        festivities: list[dict[str, Any]] = []
         festivities.append(
             {
                 "name": "Mary, Mother of God",
@@ -384,7 +413,7 @@ class CalendarGenerator:
 
         for festivity in propriumdesanctis_1970:
             if festivity["GRADE"] == LiturgicalGrade.SOLEMNITY:
-                festivity_to_add = {
+                festivity_to_add: dict[str, Any] = {
                     "name": propriumdesanctis_1970_tags[festivity["TAG"]],
                     "date": datetime.datetime(
                         self._year, festivity["MONTH"], festivity["DAY"]
@@ -422,15 +451,15 @@ class CalendarGenerator:
                 festivities.append(festivity_to_add)
         return festivities
 
-    def __get_sunday_after_epiphany(self):
+    def __get_sunday_after_epiphany(self) -> datetime.datetime:
         sunday_after_epiphany = datetime.datetime(self._year, 1, 6)
         while sunday_after_epiphany.weekday() != 6:
             sunday_after_epiphany += datetime.timedelta(days=1)
 
         return sunday_after_epiphany
 
-    def __generate_feasts_mary_saints(self):
-        festivities = []
+    def __generate_feasts_mary_saints(self) -> list[dict[str, Any]]:
+        festivities: list[dict[str, Any]] = []
         working_dir = os.path.dirname(__file__)
         propriumdesanctis_1970 = []
         propriumdesanctis_1970_tags = {}
@@ -453,10 +482,10 @@ class CalendarGenerator:
 
         return festivities
 
-    def __generate_feasts_of_the_lord(self):
+    def __generate_feasts_of_the_lord(self) -> list[dict[str, Any]]:
         sunday_after_epiphany = self.__get_sunday_after_epiphany()
 
-        festivities = []
+        festivities: list[dict[str, Any]] = []
         festivities.append(
             {
                 "name": "Baptism of the Lord",
@@ -511,8 +540,10 @@ class CalendarGenerator:
 
         return festivities
 
-    def __generate_sundays_christmas_ordinary_time(self, current_solemnity_dates):
-        festivities = []
+    def __generate_sundays_christmas_ordinary_time(
+        self, current_solemnity_dates: list[datetime.datetime]
+    ) -> list[dict[str, Any]]:
+        festivities: list[dict[str, Any]] = []
 
         working_dir = os.path.dirname(__file__)
 
@@ -569,8 +600,10 @@ class CalendarGenerator:
 
         return festivities
 
-    def __generate_weekdays_advent(self, current_solemnities_feast_memorials):
-        festivities = []
+    def __generate_weekdays_advent(
+        self, current_solemnities_feast_memorials: list[datetime.datetime]
+    ) -> list[dict[str, Any]]:
+        festivities: list[dict[str, Any]] = []
         last_sunday_of_advent = self.__get_last_sunday_of_advent()
 
         advent_1 = last_sunday_of_advent - datetime.timedelta(days=21)
@@ -607,8 +640,10 @@ class CalendarGenerator:
 
         return festivities
 
-    def __generate_weekdays_christmas_octave(self, current_solemnities_feast_memorials):
-        festivities = []
+    def __generate_weekdays_christmas_octave(
+        self, current_solemnities_feast_memorials: list[datetime.datetime]
+    ) -> list[dict[str, Any]]:
+        festivities: list[dict[str, Any]] = []
 
         weekday_christmas = datetime.datetime(self._year, 12, 25)
         weekday_christmas_cnt = 1
@@ -638,7 +673,7 @@ class CalendarGenerator:
 
         return festivities
 
-    def __get_ordinal(self, i):
+    def __get_ordinal(self, i: int) -> str:
         ordinal = ""
         if i == 1:
             ordinal = "1st"
@@ -650,8 +685,10 @@ class CalendarGenerator:
             ordinal = f"{i}th"
         return ordinal
 
-    def __generate_weekdays_lent(self, current_solemnities):
-        festivities = []
+    def __generate_weekdays_lent(
+        self, current_solemnities: list[datetime.datetime]
+    ) -> list[dict[str, Any]]:
+        festivities: list[dict[str, Any]] = []
 
         ash_wednesday = self.__get_easter_date() - datetime.timedelta(days=46)
         palm_sunday = self.__get_easter_date() - datetime.timedelta(days=7)
@@ -700,22 +737,26 @@ class CalendarGenerator:
 
         return festivities
 
-    def __get_solemnities(self, festivities):
-        current_solemnity_dates = []
+    def __get_solemnities(
+        self, festivities: list[dict[str, Any]]
+    ) -> list[datetime.datetime]:
+        current_solemnity_dates: list[datetime.datetime] = []
         for festivity in festivities:
             if festivity["liturgical_grade"] >= LiturgicalGrade.FEAST_LORD:
                 current_solemnity_dates.append(festivity["date"])
         return current_solemnity_dates
 
-    def __get_solemnities_feast_memorials(self, festivities):
-        current_dates = []
+    def __get_solemnities_feast_memorials(
+        self, festivities: list[dict[str, Any]]
+    ) -> list[datetime.datetime]:
+        current_dates: list[datetime.datetime] = []
         for festivity in festivities:
             if festivity["liturgical_grade"] >= LiturgicalGrade.MEMORIAL:
                 current_dates.append(festivity["date"])
         return current_dates
 
-    def __generate_memorials(self):
-        festivities = []
+    def __generate_memorials(self) -> list[dict[str, Any]]:
+        festivities: list[dict[str, Any]] = []
         festivities.append(
             {
                 "name": "The Immaculate Heart of the Blessed Virgin Mary",
@@ -728,8 +769,8 @@ class CalendarGenerator:
         working_dir = os.path.dirname(__file__)
 
         for year in [1970, 2002, 2008]:
-            propriumdesanctis = []
-            propriumdesanctis_tags = {}
+            propriumdesanctis: list[dict[str, Any]] = []
+            propriumdesanctis_tags: dict[str, str] = {}
             with open(f"{working_dir}/propriumdesanctis_{year}.json") as json_file:
                 propriumdesanctis = json.load(json_file)
             with open(f"{working_dir}/propriumdesanctis_{year}_tags.json") as json_file:
@@ -753,8 +794,8 @@ class CalendarGenerator:
 
         return festivities
 
-    def __generate_decrees(self):
-        festivities = []
+    def __generate_decrees(self) -> list[dict[str, Any]]:
+        festivities: list[dict[str, Any]] = []
         festivities.append(
             {
                 "name": "The Immaculate Heart of the Blessed Virgin Mary",
@@ -766,8 +807,8 @@ class CalendarGenerator:
 
         working_dir = os.path.dirname(__file__)
 
-        propriumdesanctis = []
-        propriumdesanctis_tags = {}
+        propriumdesanctis: list[dict[str, Any]] = []
+        propriumdesanctis_tags: dict[str, str] = {}
         with open(f"{working_dir}/memorialsFromDecrees.json") as json_file:
             propriumdesanctis = json.load(json_file)
         with open(f"{working_dir}/memorialsFromDecrees_tags.json") as json_file:
@@ -791,8 +832,10 @@ class CalendarGenerator:
 
         return festivities
 
-    def __generate_weekdays_major_seasons(self, current_solemnities_feast_memorials):
-        festivities = []
+    def __generate_weekdays_major_seasons(
+        self, current_solemnities_feast_memorials: list[datetime.datetime]
+    ) -> list[dict[str, Any]]:
+        festivities: list[dict[str, Any]] = []
         weekday_easter = self.__get_easter_date()
         weekday_easter_cnt = 1
         while (
@@ -826,8 +869,10 @@ class CalendarGenerator:
 
         return festivities
 
-    def __generate_weekdays_ordinary_time(self, current_solemnities_feast_memorials):
-        festivities = []
+    def __generate_weekdays_ordinary_time(
+        self, current_solemnities_feast_memorials: list[datetime.datetime]
+    ) -> list[dict[str, Any]]:
+        festivities: list[dict[str, Any]] = []
         sunday_after_epiphany = self.__get_sunday_after_epiphany()
         first_weekdays_lower_limit = sunday_after_epiphany
         first_weekdays_upper_limit = self.__get_easter_date() - datetime.timedelta(
@@ -854,7 +899,10 @@ class CalendarGenerator:
                     current_ord_week = ((diff - diff % 7) // 7) + 2
 
                 ordinal = self.__get_ordinal(current_ord_week)
-                name = f"{first_ordinary.strftime('%A')} of the {ordinal} Week of Ordinary Time"
+                name = (
+                    f"{first_ordinary.strftime('%A')} of the {ordinal} Week of Ordinary"
+                    " Time"
+                )
                 festivities.append(
                     {
                         "name": name,
@@ -892,7 +940,10 @@ class CalendarGenerator:
                 current_ord_week = 34 - week_diff
 
                 ordinal = self.__get_ordinal(current_ord_week)
-                name = f"{last_ordinary.strftime('%A')} of the {ordinal} Week of Ordinary Time"
+                name = (
+                    f"{last_ordinary.strftime('%A')} of the {ordinal} Week of Ordinary"
+                    " Time"
+                )
                 festivities.append(
                     {
                         "name": name,
@@ -904,8 +955,10 @@ class CalendarGenerator:
             ord_weekday += 1
         return festivities
 
-    def __generate_saturday_memorial_bvm(self, current_solemnities_feast_memorials):
-        festivities = []
+    def __generate_saturday_memorial_bvm(
+        self, current_solemnities_feast_memorials: list[datetime.datetime]
+    ) -> list[dict[str, Any]]:
+        festivities: list[dict[str, Any]] = []
         current_saturday = datetime.datetime(self._year, 1, 1)
         while current_saturday.weekday() != 5:
             current_saturday += datetime.timedelta(days=1)
@@ -927,8 +980,8 @@ class CalendarGenerator:
                 )
         return festivities
 
-    def generate_festivities(self):
-        festivities = []
+    def generate_festivities(self) -> dict[datetime.datetime, list[dict[str, Any]]]:
+        festivities: list[dict[str, Any]] = []
         festivities.extend(self.__generate_easter_triduum())
         festivities.extend(self.__generate_christmas_epiphany())
         festivities.extend(self.__generate_ascension_pentecost())
@@ -938,7 +991,7 @@ class CalendarGenerator:
         festivities.extend(self.__generate_easter_octave())
         festivities.extend(self.__generate_mobile_solemnities_of_the_lord())
 
-        sundays_of_advent_lent_easter = []
+        sundays_of_advent_lent_easter: list[datetime.datetime] = []
         for festivity in festivities:
             if (
                 festivity["name"].endswith("Sunday of Advent")
@@ -999,14 +1052,14 @@ class CalendarGenerator:
             )
         )
 
-        festivities_dict = {}
+        festivities_dict: dict[datetime.datetime, list[dict[str, Any]]] = {}
         for festivity in festivities:
             if festivity["date"] not in festivities_dict:
                 festivities_dict.update({festivity["date"]: []})
             festivities_dict[festivity["date"]].append(festivity)
         return festivities_dict
 
-    def __get_easter_date(self):
+    def __get_easter_date(self) -> datetime.datetime:
         d = 225 - 11 * (self._year % 19)
 
         while d > 50:

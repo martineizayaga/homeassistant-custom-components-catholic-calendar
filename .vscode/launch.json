@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Home Assistant",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "homeassistant",
+      "args": [
+        "-c",
+        "ha_core/config"
+      ],
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "serverReadyAction": {
+        "pattern": "Starting Home Assistant",
+        "uriFormat": "http://localhost:8123",
+        "action": "openExternally"
+      }
+    }
+  ]
+}

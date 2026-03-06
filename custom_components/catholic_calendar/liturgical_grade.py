@@ -9,7 +9,7 @@ class LiturgicalGrade:
     WEEKDAY = 0
 
     @staticmethod
-    def descr(grade):
+    def descr(grade: int) -> str | None:
         if grade == LiturgicalGrade.WEEKDAY:
             return "Weekday"
         if grade == LiturgicalGrade.COMMEMORATION:
@@ -26,3 +26,4 @@ class LiturgicalGrade:
             return "Solemnity"
         if grade == LiturgicalGrade.HIGHER_SOLEMNITY:
             return "Higher Solemnity"
+        return None
