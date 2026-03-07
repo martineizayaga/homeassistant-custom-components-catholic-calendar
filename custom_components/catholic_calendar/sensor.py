@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 from typing import Any
 
 import homeassistant.helpers.config_validation as cv
@@ -18,6 +19,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType, StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from . import async_get_coordinator
 from .coordinator import CatholicCalendarCoordinator
@@ -94,22 +96,30 @@ class CatholicCalendarSensor(
             sw_version=__version__,
         )
 
+    def _get_today_festivities(self) -> list[dict[str, Any]]:
+        """Get festivities for today's date from the cache."""
+        today = dt_util.now().date()
+        date_key = datetime.datetime(today.year, today.month, today.day)
+        all_festivities = self.coordinator.data.get("all_festivities", {})
+        return all_festivities.get(date_key, [])
+
     @property
     def native_value(self) -> StateType:
         """Return the state of the sensor."""
-        festivities = self.coordinator.data.get("festivities", [])
+        festivities = self._get_today_festivities()
         if not festivities:
             return "Ordinary Weekday"
-        # The coordinator already sorts these by importance (Liturgical Grade)
+        # Sorted by importance by the coordinator
         return festivities[0]["name"]
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return entity specific state attributes."""
+        today = dt_util.now().date()
         return {
-            "date": self.coordinator.data["today"],
-            "season": self.coordinator.data["season"],
-            "festivities": self.coordinator.data["festivities"],
+            "date": today,
+            "season": self.coordinator.get_season_for_date(today).value,
+            "festivities": self._get_today_festivities(),
         }
 
 
@@ -141,4 +151,5 @@ class CatholicCalendarSeasonSensor(
     @property
     def native_value(self) -> StateType:
         """Return the state of the sensor."""
-        return self.coordinator.data["season"]
+        today = dt_util.now().date()
+        return self.coordinator.get_season_for_date(today).value

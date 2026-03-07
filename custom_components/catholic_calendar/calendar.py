@@ -19,6 +19,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from . import async_get_coordinator
 from .coordinator import CatholicCalendarCoordinator
@@ -94,7 +95,8 @@ class CatholicCalendar(CoordinatorEntity[CatholicCalendarCoordinator], CalendarE
     @property
     def event(self) -> CalendarEvent | None:
         """Return the next upcoming event."""
-        today = self.coordinator.data["today"]
+        # Use actual system time, not the cached coordinator 'today'
+        today = dt_util.now().date()
         events = self.__get_calendar_events(today)
         if len(events) == 0:
             return None
@@ -122,7 +124,7 @@ class CatholicCalendar(CoordinatorEntity[CatholicCalendarCoordinator], CalendarE
                     calendar_events.append(
                         CalendarEvent(
                             start=date_key.date(),
-                            end=date_key.date(),
+                            end=date_key.date() + datetime.timedelta(days=1),
                             summary=festivity["name"],
                             description=(
                                 f"liturgical_color: {festivity['liturgical_color']}, "
@@ -150,7 +152,7 @@ class CatholicCalendar(CoordinatorEntity[CatholicCalendarCoordinator], CalendarE
                 calendar_events.append(
                     CalendarEvent(
                         start=date,
-                        end=date,
+                        end=date + datetime.timedelta(days=1),
                         summary=festivity["name"],
                         description=(
                             f"liturgical_color: {festivity['liturgical_color']}, "

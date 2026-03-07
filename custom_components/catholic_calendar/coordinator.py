@@ -13,6 +13,7 @@ from homeassistant.util import dt as dt_util
 
 from .calendar_generator import CalendarGenerator
 from .liturgical_grade import LiturgicalGrade
+from .liturgical_season import LiturgicalSeason
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,6 +36,11 @@ class CatholicCalendarCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self.years_loaded: set[int] = set()
         self.festivities: dict[datetime.datetime, list[dict[str, Any]]] = {}
+
+    def get_season_for_date(self, date: datetime.date) -> LiturgicalSeason:
+        """Get the liturgical season for a specific date."""
+        gen = CalendarGenerator(date.year)
+        return gen.get_season(date)
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Update data via executor."""
@@ -75,22 +81,10 @@ class CatholicCalendarCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.years_loaded = {y for y in self.years_loaded if y >= today.year - 1}
 
         # Get current season
-        current_gen = CalendarGenerator(today.year)
-        season = current_gen.get_season(today)
-
-        # Get today's festivities
-        todays_festivities = []
-        date_key = datetime.datetime(today.year, today.month, today.day)
-        if date_key in self.festivities:
-            todays_festivities = sorted(
-                self.festivities[date_key], 
-                key=lambda x: x.get("liturgical_grade", 0), 
-                reverse=True
-            )
+        season = self.get_season_for_date(today)
 
         return {
             "today": today,
             "season": season.value,
-            "festivities": todays_festivities,
-            "all_festivities": self.festivities,  # Needed for the calendar
+            "all_festivities": self.festivities,  # Needed for the calendar/sensors
         }
