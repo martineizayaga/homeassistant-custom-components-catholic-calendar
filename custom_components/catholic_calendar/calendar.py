@@ -1,4 +1,4 @@
-"""CatholicCalendar calendar."""
+"""Catholic Calendar calendar."""
 
 from __future__ import annotations
 
@@ -8,32 +8,26 @@ import logging
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.components.calendar import (
-    PLATFORM_SCHEMA,
+    PLATFORM_SCHEMA as BASE_SCHEMA,
     CalendarEntity,
     CalendarEvent,
 )
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType
-from homeassistant.util import dt as dt_util
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .calendar_generator import CalendarGenerator
-from .liturgical_grade import LiturgicalGrade
+from . import async_get_coordinator
+from .coordinator import CatholicCalendarCoordinator
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
-__version__ = "1.0.1"
+__version__ = "1.1.0"
+DOMAIN = "catholic_calendar"
 
-COMPONENT_REPO = (
-    "https://github.com/jmacri01/homeassistant-custom-components-catholic-calendar"
-)
-
-REQUIREMENTS: list[str] = []
-
-DEFAULT_THUMBNAIL = "https://www.home-assistant.io/images/favicon-192x192-full.png"
-
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
+PLATFORM_SCHEMA = BASE_SCHEMA.extend(
     {vol.Required(CONF_NAME): cv.string},
 )
 
@@ -44,44 +38,47 @@ async def async_setup_platform(
     async_add_devices: AddEntitiesCallback,
     discovery_info: DiscoveryInfoType | None = None,
 ) -> None:
-    """Set up the CatholicCalendar sensor."""
+    """Set up the Catholic Calendar sensor."""
+    name = config[CONF_NAME]
+    
+    coordinator = await async_get_coordinator(hass)
+    
     async_add_devices(
         [
-            CatholicCalendar(
-                name=config[CONF_NAME],
-            ),
+            CatholicCalendar(coordinator, name),
         ],
-        update_before_add=True,
     )
 
 
-class CatholicCalendar(CalendarEntity):  # type: ignore[misc]
-    """Representation of a CatholicCalendar calendar."""
+class CatholicCalendar(CoordinatorEntity[CatholicCalendarCoordinator], CalendarEntity):
+    """Representation of a Catholic Calendar calendar."""
 
     _attr_force_update = True
+    _attr_has_entity_name = True
 
     def __init__(
-        self: CatholicCalendar,
+        self,
+        coordinator: CatholicCalendarCoordinator,
         name: str,
     ) -> None:
-        """Initialize the CatholicCalendar calendar."""
-        self._attr_name = name
-        self._years_loaded: list[int] = []
-        self._festivities: dict[datetime.datetime, list[dict[str, str]]] = {}
-        _LOGGER.debug("CatholicCalendar initialized - %s", self)
-
-    def __repr__(self: CatholicCalendar) -> str:
-        """Return the representation."""
-        return "CatholicCalendar"
+        """Initialize the calendar."""
+        super().__init__(coordinator)
+        name_slug = name.lower().replace(" ", "_")
+        self._attr_unique_id = f"{name_slug}_calendar"
+        self._attr_name = "Calendar"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, name)},
+            name=name,
+            manufacturer="Roman Catholic Church",
+            model="Western Liturgical Calendar",
+            sw_version=__version__,
+        )
 
     @property
     def event(self) -> CalendarEvent | None:
         """Return the next upcoming event."""
-        curr_date = dt_util.now().date()
-        if curr_date.year not in self._years_loaded:
-            self.__generate_festivities(curr_date.year)
-
-        events = self.__get_calendar_events(curr_date)
+        today = self.coordinator.data["today"]
+        events = self.__get_calendar_events(today)
         if len(events) == 0:
             return None
         return events[0]
@@ -93,48 +90,54 @@ class CatholicCalendar(CalendarEntity):  # type: ignore[misc]
         end_date: datetime.datetime,
     ) -> list[CalendarEvent]:
         """Return calendar events within a datetime range."""
-        for year in range(start_date.year, end_date.year + 1):
-            if year not in self._years_loaded:
-                self.__generate_festivities(year)
         calendar_events = []
+        all_festivities = self.coordinator.data["all_festivities"]
 
         curr_date = start_date
         while curr_date <= end_date:
-            _LOGGER.debug("getting calender event for date: %s", curr_date)
-            calendar_events.extend(self.__get_calendar_events(curr_date))
+            date_key = datetime.datetime(curr_date.year, curr_date.month, curr_date.day)
+            if date_key in all_festivities:
+                for festivity in sorted(
+                    all_festivities[date_key],
+                    key=lambda x: x.get("liturgical_grade", 0),
+                    reverse=True,
+                ):
+                    calendar_events.append(
+                        CalendarEvent(
+                            start=date_key.date(),
+                            end=date_key.date(),
+                            summary=festivity["name"],
+                            description=(
+                                f"liturgical_color: {festivity['liturgical_color']}, "
+                                f"liturgical_grade: {festivity['liturgical_grade_desc']}"
+                            ),
+                        )
+                    )
             curr_date += datetime.timedelta(days=1)
 
-        _LOGGER.debug("retrieved calendar_events: %s", calendar_events)
         return calendar_events
 
     def __get_calendar_events(self, date: datetime.date) -> list[CalendarEvent]:
+        """Get events for a specific date."""
         calendar_events = []
-        if datetime.datetime(date.year, date.month, date.day) in self._festivities:
+        all_festivities = self.coordinator.data["all_festivities"]
+        date_key = datetime.datetime(date.year, date.month, date.day)
+        
+        if date_key in all_festivities:
             for festivity in sorted(
-                self._festivities[datetime.datetime(date.year, date.month, date.day)],
-                key=lambda x: x["liturgical_grade"] or 0,
+                all_festivities[date_key],
+                key=lambda x: x.get("liturgical_grade", 0),
                 reverse=True,
             ):
                 calendar_events.append(
                     CalendarEvent(
-                        start=datetime.date(date.year, date.month, date.day),
-                        end=datetime.date(date.year, date.month, date.day),
+                        start=date,
+                        end=date,
                         summary=festivity["name"],
                         description=(
                             f"liturgical_color: {festivity['liturgical_color']}, "
-                            "liturgical_grade: "
-                            f"{LiturgicalGrade.descr(int(festivity['liturgical_grade']))}"
+                            f"liturgical_grade: {festivity['liturgical_grade_desc']}"
                         ),
                     )
                 )
         return calendar_events
-
-    def __generate_festivities(self, year: int) -> None:
-        _LOGGER.debug("Generating dates for year %s", year)
-        calendar_generator = CalendarGenerator(year)
-        festivities = calendar_generator.generate_festivities()
-        self._years_loaded.append(year)
-        for key in festivities:
-            if key not in self._festivities:
-                self._festivities.update({key: []})
-            self._festivities[key].extend(festivities[key])

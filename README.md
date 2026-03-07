@@ -1,5 +1,5 @@
-# Catholic Calendar
-Adds a Catholic Calendar sensor and calendar to home assistant.
+# Roman Catholic Calendar
+Adds a Roman Catholic Calendar sensor and calendar to home assistant.
 
 Based off of https://github.com/Liturgical-Calendar/LiturgicalCalendarAPI for determining calendar logic.
 
