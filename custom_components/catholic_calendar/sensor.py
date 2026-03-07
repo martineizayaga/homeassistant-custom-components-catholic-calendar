@@ -20,6 +20,7 @@ from homeassistant.util import dt as dt_util
 
 from . import async_get_coordinator
 from .coordinator import CatholicCalendarCoordinator
+from .liturgical_grade import LiturgicalGrade
 from .liturgical_season import LiturgicalSeason
 
 __version__ = "2.0.0"
@@ -86,8 +87,49 @@ class CatholicCalendarSensor(
         """Return the state of the sensor."""
         active_date = self._get_active_date()
         festivities = self._get_festivities_for_date(active_date)
+
         if not festivities:
             return "Ordinary Weekday"
+
+        top_grade = festivities[0].get("liturgical_grade", 0)
+
+        # Helper: Get unique names for a specific grade
+        def names_for_grade(grade: int) -> list[str]:
+            return list(
+                dict.fromkeys(
+                    f["name"] for f in festivities if f.get("liturgical_grade") == grade
+                )
+            )
+
+        # 1. Handle Commemorations (Lent/Advent/Octaves)
+        if top_grade == LiturgicalGrade.COMMEMORATION:
+            weekday = next(
+                (
+                    f
+                    for f in festivities
+                    if f.get("liturgical_grade") == LiturgicalGrade.WEEKDAY
+                ),
+                None,
+            )
+            comm_names = names_for_grade(LiturgicalGrade.COMMEMORATION)
+            if weekday:
+                return f"{weekday['name']} (Commemoration of {', '.join(comm_names)})"
+
+        # 2. Handle Optional Memorials (Ordinary Time)
+        if top_grade == LiturgicalGrade.MEMORIAL_OPT:
+            opt_names = names_for_grade(LiturgicalGrade.MEMORIAL_OPT)
+            weekday = next(
+                (
+                    f
+                    for f in festivities
+                    if f.get("liturgical_grade") == LiturgicalGrade.WEEKDAY
+                ),
+                None,
+            )
+            opt_str = ", ".join(opt_names)
+            return f"{opt_str} (or {weekday['name']})" if weekday else opt_str
+
+        # 3. Handle Mandatory celebrations (Solemnity, Feast, Memorial)
         return festivities[0]["name"]
 
     @property
