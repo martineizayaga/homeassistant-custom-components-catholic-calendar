@@ -16,7 +16,7 @@
   "entity": {
     "sensor": {
       "roman_catholic_today": {
-        "name": "Today"
+        "name": "Liturgical Observance"
       },
       "roman_catholic_liturgical_season": {
         "name": "Liturgical Season"

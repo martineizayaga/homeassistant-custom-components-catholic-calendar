@@ -85,7 +85,7 @@ class CatholicCalendarSensor(
         super().__init__(coordinator)
         name_slug = name.lower().replace(" ", "_")
         self._attr_unique_id = f"{name_slug}_today"
-        self._attr_name = "Today"
+        self._attr_name = "Liturgical Observance"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, name_slug)},
             name=name,
@@ -97,12 +97,17 @@ class CatholicCalendarSensor(
     @property
     def native_value(self) -> StateType:
         """Return the state of the sensor."""
-        return self.coordinator.data["today"]
+        festivities = self.coordinator.data.get("festivities", [])
+        if not festivities:
+            return "Ordinary Weekday"
+        # The coordinator already sorts these by importance (Liturgical Grade)
+        return festivities[0]["name"]
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return entity specific state attributes."""
         return {
+            "date": self.coordinator.data["today"],
             "season": self.coordinator.data["season"],
             "festivities": self.coordinator.data["festivities"],
         }
