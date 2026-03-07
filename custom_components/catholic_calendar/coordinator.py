@@ -46,13 +46,10 @@ class CatholicCalendarCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             tomorrow = today + datetime.timedelta(days=1)
             tomorrow_key = datetime.datetime(tomorrow.year, tomorrow.month, tomorrow.day)
             
-            # Check tomorrow's festivities in our cache
             tomorrow_festivities = self.festivities.get(tomorrow_key, [])
             for festivity in tomorrow_festivities:
                 grade = festivity.get("liturgical_grade", 0)
-                # Solemnities (6+) or any Sunday (tomorrow.weekday() == 6)
                 if grade >= 6 or tomorrow.weekday() == 6:
-                    _LOGGER.debug("First Vespers active: Switching to tomorrow's observance early")
                     return tomorrow
                     
         return today
@@ -69,8 +66,6 @@ class CatholicCalendarCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _update_data(self) -> dict[str, Any]:
         """Fetch data from calendar generator."""
         today = dt_util.now().date()
-        
-        # We always want the current year and the next year (for upcoming events)
         years_to_load = [today.year, today.year + 1]
         
         for year in years_to_load:
@@ -98,6 +93,14 @@ class CatholicCalendarCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             k: v for k, v in self.festivities.items() if k >= cutoff
         }
         self.years_loaded = {y for y in self.years_loaded if y >= today.year - 1}
+
+        # SENIOR FIX: Sort every date's festivities by Liturgical Grade (descending)
+        # This ensures the most important event is always at index 0.
+        for date_key in self.festivities:
+            self.festivities[date_key].sort(
+                key=lambda x: x.get("liturgical_grade", 0), 
+                reverse=True
+            )
 
         return {
             "all_festivities": self.festivities,

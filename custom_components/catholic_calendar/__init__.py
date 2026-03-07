@@ -4,11 +4,9 @@ from __future__ import annotations
 
 import logging
 
-import homeassistant.helpers.config_validation as cv
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.typing import ConfigType
 
 from .coordinator import CatholicCalendarCoordinator
 
@@ -16,13 +14,6 @@ _LOGGER = logging.getLogger(__name__)
 DOMAIN = "catholic_calendar"
 
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.CALENDAR]
-
-CONFIG_SCHEMA = cv.platform_only_config_schema(DOMAIN)
-
-
-async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Set up the Catholic Calendar component (legacy YAML support)."""
-    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -52,17 +43,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_get_coordinator(
-    hass: HomeAssistant, entry_id: str | None = None
+    hass: HomeAssistant, entry_id: str
 ) -> CatholicCalendarCoordinator:
-    """Get the shared coordinator (used by platform setup)."""
-    if entry_id and entry_id in hass.data[DOMAIN]:
-        return hass.data[DOMAIN][entry_id]
-
-    # Fallback for legacy setups
-    if "coordinator" not in hass.data[DOMAIN]:
-        # Legacy setup doesn't have a config_entry
-        coordinator = CatholicCalendarCoordinator(hass, config_entry=None)
-        hass.data.setdefault(DOMAIN, {})["coordinator"] = coordinator
-        await coordinator.async_config_entry_first_refresh()
-
-    return hass.data[DOMAIN]["coordinator"]
+    """Get the shared coordinator."""
+    return hass.data[DOMAIN][entry_id]

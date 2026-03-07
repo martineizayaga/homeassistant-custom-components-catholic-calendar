@@ -24,27 +24,37 @@ fi
 
 source venv/bin/activate
 
-# Upgrade project dependencies
+# Install project requirements (Development/Test tools)
+if [ -f "requirements.txt" ]; then
+    uv pip install -r requirements.txt
+fi
+
+# Upgrade Home Assistant Core dependencies
 cd ha_core
 uv pip install --upgrade -r requirements.txt
 uv pip install --upgrade -e .
-uv pip install --upgrade ruff mypy
 cd ..
 
-# 4. Set up configuration.yaml with catholic_calendar integration
+# 4. Set up configuration.yaml
 CONFIG_DIR="ha_core/config"
 CONFIG_FILE="$CONFIG_DIR/configuration.yaml"
 
 mkdir -p "$CONFIG_DIR"
 
+if [ -f "$CONFIG_FILE" ]; then
+    echo "Skeptical Cleanup: Removing legacy YAML configuration for catholic_calendar..."
+    # Remove lines containing platform: catholic_calendar
+    sed -i '/platform: catholic_calendar/d' "$CONFIG_FILE"
+    # Note: We keep the logger entries as they are useful for development
+fi
+
 if [ ! -f "$CONFIG_FILE" ]; then
-    echo "Creating new configuration.yaml..."
+    echo "Scaffolding minimalist configuration.yaml..."
     cat <<EOF > "$CONFIG_FILE"
-# Manual set of integrations to avoid go2rtc/default_config failures
+# Manual set of integrations to avoid heavy core components (e.g. go2rtc)
 frontend:
   themes: !include_dir_merge_named themes
 
-# Essential components for the UI and operation
 config:
 my:
 history:
@@ -55,38 +65,14 @@ automation: !include automations.yaml
 script: !include scripts.yaml
 scene: !include scenes.yaml
 
+# Development Logger: Ensures you see your debug messages in the terminal
 logger:
   default: info
   logs:
     custom_components.catholic_calendar: debug
-
-sensor:
-  - platform: catholic_calendar
-    name: "Catholic Sensor"
-
-calendar:
-  - platform: catholic_calendar
-    name: "Catholic Calendar"
 EOF
     # Create referenced files to avoid errors
     touch "$CONFIG_DIR/automations.yaml" "$CONFIG_DIR/scripts.yaml" "$CONFIG_DIR/scenes.yaml"
-elif ! grep -q "catholic_calendar" "$CONFIG_FILE"; then
-    echo "Adding catholic_calendar to existing configuration.yaml..."
-    cat <<EOF >> "$CONFIG_FILE"
-
-# Catholic Calendar Integration added by devcontainer
-logger:
-  logs:
-    custom_components.catholic_calendar: debug
-
-sensor:
-  - platform: catholic_calendar
-    name: "Catholic Sensor"
-
-calendar:
-  - platform: catholic_calendar
-    name: "Catholic Calendar"
-EOF
 fi
 
 # 5. Optionally install gemini-cli

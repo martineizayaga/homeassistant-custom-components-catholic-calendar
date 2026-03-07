@@ -36,7 +36,9 @@
 				"google.gemini-cli-vscode-ide-companion",
 				"ms-python.python",
 				"ms-python.vscode-pylance",
-				"charliermarsh.ruff"
+				"charliermarsh.ruff",
+				"dejandevic.mermaid-editor",
+				"tamasfe.even-better-toml"
 			]
 		}
 	}

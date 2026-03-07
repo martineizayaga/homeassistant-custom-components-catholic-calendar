@@ -5,10 +5,7 @@ from __future__ import annotations
 import datetime
 from typing import Any
 
-import homeassistant.helpers.config_validation as cv
-import voluptuous as vol
 from homeassistant.components.sensor import (
-    PLATFORM_SCHEMA as BASE_SCHEMA,
     SensorDeviceClass,
     SensorEntity,
 )
@@ -17,7 +14,7 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import ConfigType, DiscoveryInfoType, StateType
+from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
@@ -25,30 +22,8 @@ from . import async_get_coordinator
 from .coordinator import CatholicCalendarCoordinator
 from .liturgical_season import LiturgicalSeason
 
-__version__ = "1.1.0"
+__version__ = "2.0.0"
 DOMAIN = "catholic_calendar"
-
-PLATFORM_SCHEMA = BASE_SCHEMA.extend(
-    {vol.Required(CONF_NAME): cv.string},
-)
-
-
-async def async_setup_platform(
-    hass: HomeAssistant,
-    config: ConfigType,
-    async_add_devices: AddEntitiesCallback,
-    discovery_info: DiscoveryInfoType | None = None,
-) -> None:
-    """Set up the Catholic Calendar sensor from YAML."""
-    name = config[CONF_NAME]
-    coordinator = await async_get_coordinator(hass)
-
-    async_add_devices(
-        [
-            CatholicCalendarSensor(coordinator, name),
-            CatholicCalendarSeasonSensor(coordinator, name),
-        ],
-    )
 
 
 async def async_setup_entry(

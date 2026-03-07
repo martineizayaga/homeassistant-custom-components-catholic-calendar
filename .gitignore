@@ -5,3 +5,4 @@ venv/
 .ruff_cache/
 .devcontainer/local.env
 .DS_Store
+tests/__pycache__/
