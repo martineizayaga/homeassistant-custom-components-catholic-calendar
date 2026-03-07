@@ -21,12 +21,19 @@ When asked to update the version based on changes:
 ### 2. Determine Current Version
 Read `custom_components/catholic_calendar/manifest.json` to find the current version string.
 
-### 3. Execute the Version Bump
-Use the bundled Python script to update all files. Replace `<new_version>` with your calculated version (e.g., `2.1.0`):
+### 3. Verify the Version Bump (Dry Run)
+Calculate the new version and run the bump script in `--dry-run` mode. **You must share the output of this dry run with the user and wait for their confirmation before proceeding.**
+
+```bash
+python3 .gemini/skills/version-manager/scripts/bump_version.py <new_version> --dry-run
+```
+
+### 4. Execute the Version Bump
+Once the user confirms, apply the changes:
 
 ```bash
 python3 .gemini/skills/version-manager/scripts/bump_version.py <new_version>
 ```
 
-### 4. Final Review
+### 5. Final Review
 Confirm to the user which files were updated and what the new version is. Do NOT stage or commit the changes.

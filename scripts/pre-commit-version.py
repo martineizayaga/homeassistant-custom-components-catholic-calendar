@@ -5,8 +5,11 @@ import sys
 
 def get_staged_files():
     # Use absolute path to git to resolve security/linting warnings
-    result = subprocess.run(
-        ["/usr/bin/git", "diff", "--cached", "--name-only"], capture_output=True, text=True
+    result = subprocess.run(  # noqa: S603
+        ["/usr/bin/git", "diff", "--cached", "--name-only"],
+        capture_output=True,
+        text=True,
+        check=False,
     )
     return result.stdout.splitlines()
 
@@ -37,7 +40,8 @@ def main():
         for f in logic_files:
             print(f"  - {f}")
         print(
-            "\nBut no version files were updated. Please bump the version before committing."
+            "\nBut no version files were updated. "
+            "Please bump the version before committing."
         )
         print("Tip: Ask Gemini to 'Update the version strings based on my changes.'")
         sys.exit(1)
