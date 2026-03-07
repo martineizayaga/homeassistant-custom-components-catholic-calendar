@@ -23,7 +23,7 @@ from .coordinator import CatholicCalendarCoordinator
 from .liturgical_grade import LiturgicalGrade
 from .liturgical_season import LiturgicalSeason
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 DOMAIN = "catholic_calendar"
 
 

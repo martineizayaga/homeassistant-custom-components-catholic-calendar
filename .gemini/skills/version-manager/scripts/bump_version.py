@@ -12,7 +12,7 @@ def update_file(filepath, pattern, replacement, dry_run=False):
     with open(filepath) as f:
         content = f.read()
 
-    match = re.search(pattern, content)
+    match = re.search(pattern, content, flags=re.MULTILINE)
     if not match:
         print(f"Warning: No version match found in {filepath}.")
         return False
@@ -29,7 +29,7 @@ def update_file(filepath, pattern, replacement, dry_run=False):
         print(f"  - {old_version_line}")
         print(f"  + {new_version_line}")
     else:
-        new_content = re.sub(pattern, replacement, content)
+        new_content = re.sub(pattern, replacement, content, flags=re.MULTILINE)
         with open(filepath, "w") as f:
             f.write(new_content)
         print(f"Updated {filepath}: {old_version_line} -> {new_version_line}")
@@ -54,9 +54,12 @@ def main():
         print(f"--- PREVIEWING BUMP TO {new_version} ---")
 
     # 1. Update pyproject.toml
+    # Use a regex that specifically targets the version field,
+    # ensuring it's at the start of a line to avoid matching
+    # target-version or python_version.
     update_file(
         "pyproject.toml",
-        r'version\s*=\s*"[^"]+"',
+        r'^version\s*=\s*"[^"]+"',
         f'version = "{new_version}"',
         dry_run=dry_run,
     )

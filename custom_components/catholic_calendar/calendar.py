@@ -22,7 +22,7 @@ from .coordinator import CatholicCalendarCoordinator
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
-__version__ = "2.0.0"
+__version__ = "2.0.1"
 DOMAIN = "catholic_calendar"
 
 
