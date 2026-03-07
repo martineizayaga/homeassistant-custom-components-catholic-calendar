@@ -12,6 +12,7 @@ from homeassistant.components.calendar import (
     CalendarEntity,
     CalendarEvent,
 )
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -38,12 +39,27 @@ async def async_setup_platform(
     async_add_devices: AddEntitiesCallback,
     discovery_info: DiscoveryInfoType | None = None,
 ) -> None:
-    """Set up the Catholic Calendar sensor."""
+    """Set up the Catholic Calendar sensor from YAML."""
     name = config[CONF_NAME]
-    
     coordinator = await async_get_coordinator(hass)
-    
+
     async_add_devices(
+        [
+            CatholicCalendar(coordinator, name),
+        ],
+    )
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up Catholic Calendar sensor from a config entry."""
+    name = entry.data[CONF_NAME]
+    coordinator = await async_get_coordinator(hass, entry.entry_id)
+
+    async_add_entities(
         [
             CatholicCalendar(coordinator, name),
         ],
@@ -55,6 +71,7 @@ class CatholicCalendar(CoordinatorEntity[CatholicCalendarCoordinator], CalendarE
 
     _attr_force_update = True
     _attr_has_entity_name = True
+    _attr_translation_key = "roman_catholic_calendar"
 
     def __init__(
         self,
@@ -67,7 +84,7 @@ class CatholicCalendar(CoordinatorEntity[CatholicCalendarCoordinator], CalendarE
         self._attr_unique_id = f"{name_slug}_calendar"
         self._attr_name = "Calendar"
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, name)},
+            identifiers={(DOMAIN, name_slug)},
             name=name,
             manufacturer="Roman Catholic Church",
             model="Western Liturgical Calendar",
@@ -109,7 +126,8 @@ class CatholicCalendar(CoordinatorEntity[CatholicCalendarCoordinator], CalendarE
                             summary=festivity["name"],
                             description=(
                                 f"liturgical_color: {festivity['liturgical_color']}, "
-                                f"liturgical_grade: {festivity['liturgical_grade_desc']}"
+                                "liturgical_grade: "
+                                f"{festivity['liturgical_grade_desc']}"
                             ),
                         )
                     )
@@ -122,7 +140,7 @@ class CatholicCalendar(CoordinatorEntity[CatholicCalendarCoordinator], CalendarE
         calendar_events = []
         all_festivities = self.coordinator.data["all_festivities"]
         date_key = datetime.datetime(date.year, date.month, date.day)
-        
+
         if date_key in all_festivities:
             for festivity in sorted(
                 all_festivities[date_key],
@@ -136,7 +154,8 @@ class CatholicCalendar(CoordinatorEntity[CatholicCalendarCoordinator], CalendarE
                         summary=festivity["name"],
                         description=(
                             f"liturgical_color: {festivity['liturgical_color']}, "
-                            f"liturgical_grade: {festivity['liturgical_grade_desc']}"
+                            "liturgical_grade: "
+                            f"{festivity['liturgical_grade_desc']}"
                         ),
                     )
                 )

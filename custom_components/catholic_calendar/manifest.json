@@ -2,6 +2,7 @@
   "domain": "catholic_calendar",
   "name": "Roman Catholic Calendar",
   "codeowners": ["@martineizayaga"],
+  "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/martineizayaga/homeassistant-custom-components-catholic-calendar",
   "iot_class": "calculated",

@@ -6,6 +6,7 @@ import datetime
 import logging
 from typing import Any
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
@@ -19,11 +20,16 @@ _LOGGER = logging.getLogger(__name__)
 class CatholicCalendarCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching Catholic Calendar data."""
 
-    def __init__(self, hass: HomeAssistant) -> None:
+    def __init__(
+        self, 
+        hass: HomeAssistant, 
+        config_entry: ConfigEntry | None = None
+    ) -> None:
         """Initialize the coordinator."""
         super().__init__(
             hass,
             _LOGGER,
+            config_entry=config_entry,
             name="catholic_calendar",
             update_interval=datetime.timedelta(hours=12),
         )

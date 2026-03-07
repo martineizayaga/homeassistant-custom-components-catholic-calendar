@@ -1,0 +1,31 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Roman Catholic Calendar",
+        "description": "Set up a Roman Catholic Liturgical Calendar. This will provide sensors for the current season and daily festivities.",
+        "data": {
+          "name": "Integration Name"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This calendar name is already in use."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "roman_catholic_today": {
+        "name": "Today"
+      },
+      "roman_catholic_liturgical_season": {
+        "name": "Liturgical Season"
+      }
+    },
+    "calendar": {
+      "roman_catholic_calendar": {
+        "name": "Calendar"
+      }
+    }
+  }
+}
