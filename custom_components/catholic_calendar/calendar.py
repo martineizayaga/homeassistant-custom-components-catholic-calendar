@@ -95,9 +95,8 @@ class CatholicCalendar(CoordinatorEntity[CatholicCalendarCoordinator], CalendarE
     @property
     def event(self) -> CalendarEvent | None:
         """Return the next upcoming event."""
-        # Use actual system time, not the cached coordinator 'today'
-        today = dt_util.now().date()
-        events = self.__get_calendar_events(today)
+        active_date = self.coordinator.get_liturgical_date(dt_util.now())
+        events = self.__get_calendar_events(active_date)
         if len(events) == 0:
             return None
         return events[0]

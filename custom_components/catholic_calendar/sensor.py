@@ -96,30 +96,34 @@ class CatholicCalendarSensor(
             sw_version=__version__,
         )
 
-    def _get_today_festivities(self) -> list[dict[str, Any]]:
-        """Get festivities for today's date from the cache."""
-        today = dt_util.now().date()
-        date_key = datetime.datetime(today.year, today.month, today.day)
+    def _get_active_date(self) -> datetime.date:
+        """Get the current liturgical date (adjusted for Vespers)."""
+        return self.coordinator.get_liturgical_date(dt_util.now())
+
+    def _get_festivities_for_date(self, date: datetime.date) -> list[dict[str, Any]]:
+        """Get festivities for a specific date from the cache."""
+        date_key = datetime.datetime(date.year, date.month, date.day)
         all_festivities = self.coordinator.data.get("all_festivities", {})
         return all_festivities.get(date_key, [])
 
     @property
     def native_value(self) -> StateType:
         """Return the state of the sensor."""
-        festivities = self._get_today_festivities()
+        active_date = self._get_active_date()
+        festivities = self._get_festivities_for_date(active_date)
         if not festivities:
             return "Ordinary Weekday"
-        # Sorted by importance by the coordinator
         return festivities[0]["name"]
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return entity specific state attributes."""
-        today = dt_util.now().date()
+        active_date = self._get_active_date()
         return {
-            "date": today,
-            "season": self.coordinator.get_season_for_date(today).value,
-            "festivities": self._get_today_festivities(),
+            "date": active_date,
+            "season": self.coordinator.get_season_for_date(active_date).value,
+            "festivities": self._get_festivities_for_date(active_date),
+            "is_vespers": dt_util.now().date() != active_date,
         }
 
 
@@ -151,5 +155,5 @@ class CatholicCalendarSeasonSensor(
     @property
     def native_value(self) -> StateType:
         """Return the state of the sensor."""
-        today = dt_util.now().date()
-        return self.coordinator.get_season_for_date(today).value
+        active_date = self.coordinator.get_liturgical_date(dt_util.now())
+        return self.coordinator.get_season_for_date(active_date).value
